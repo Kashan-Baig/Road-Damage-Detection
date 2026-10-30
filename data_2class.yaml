@@ -1,0 +1,8 @@
+path: C:/MyWork/RoadDamageDetection/road_damage_2class
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: pothole
+  1: manhole
