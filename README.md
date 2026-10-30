@@ -10,6 +10,7 @@ An object detection project using **YOLO11n** to detect road damage, specificall
 | 1 | Manhole |
 
 ## Technologies
+
 - Python
 - YOLO11n (Ultralytics)
 - PyTorch
@@ -32,7 +33,7 @@ The dataset contains two classes: potholes and manholes.
 | Parameter | Value |
 |---|---|
 | Model | YOLO11n |
-| Pretrained weights | yolo11n.pt |
+| Pretrained weights | `yolo11n.pt` |
 | Epochs | 100 |
 | Batch size | 8 |
 | Image size | 768 |
@@ -63,7 +64,7 @@ The dataset contains two classes: potholes and manholes.
 
 **Observation:** Both resolutions produced similar results. The 640 × 640 model performed slightly better on the reported validation metrics.
 
-### Class-wise Test Results (768)
+### Class-wise Test Results (768 × 768)
 
 | Class | Precision | Recall | mAP50 | mAP50-95 |
 |---|---:|---:|---:|---:|
@@ -94,19 +95,29 @@ The following experiments and analyses were also performed:
 
 ## Installation
 
+Clone the repository:
+
 ```bash
 git clone YOUR_REPOSITORY_URL
 cd RoadDamageDetection
+```
 
+Create and activate a virtual environment:
+
+```bash
 python -m venv venv
 venv\Scripts\activate
+```
 
+Install the required dependencies:
+
+```bash
 pip install ultralytics opencv-python matplotlib numpy
 ```
 
 ## Prediction
 
-Run your prediction script:
+Run the image prediction script:
 
 ```bash
 python predict.py
