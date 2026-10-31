@@ -14,7 +14,7 @@ def parse_args():
     parser.add_argument(
         "--weights",
         type=str,
-        default=str(PROJECT_DIR / "runs" / "road_damage_baseline" / "weights" / "best_640.pt"),
+        default=str(PROJECT_DIR / "best.pt"),
         help="Path to trained model weights (.pt file).",
     )
     parser.add_argument(

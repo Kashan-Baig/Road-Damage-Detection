@@ -1,4 +1,4 @@
-path: C:/MyWork/RoadDamageDetection/road_damage_2class
+path: C:/Users/amtul/Desktop/Road-Damage-Detection/road_damage_2class
 train: images/train
 val: images/val
 test: images/test

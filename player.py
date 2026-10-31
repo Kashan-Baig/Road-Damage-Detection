@@ -139,6 +139,19 @@ def find_default_model():
     return PROJECT_DIR / "best.pt"
 
 
+def normalize_hazard_class(raw_name: str) -> str:
+    name = str(raw_name).lower().strip()
+    if any(k in name for k in ["pothole", "d40", "rutting", "bump"]):
+        return "pothole"
+    elif any(k in name for k in ["manhole", "d70", "drain", "utility"]):
+        return "manhole"
+    elif any(k in name for k in ["crack", "d00", "d10", "d20", "fissure", "longitudinal", "transverse", "alligator"]):
+        return "crack"
+    elif "other" in name:
+        return "pothole"
+    return name
+
+
 def find_test_videos():
     tests_dir = PROJECT_DIR / "tests"
     if not tests_dir.is_dir():
@@ -246,16 +259,8 @@ def play_video(video_path, model, args, current_conf):
             detections = []
             for box in results.boxes:
                 cls_id = int(box.cls[0].item())
-                raw_name = model.names.get(cls_id, "").lower()
-
-                if "pothole" in raw_name:
-                    c_name = "pothole"
-                elif "manhole" in raw_name:
-                    c_name = "manhole"
-                elif "crack" in raw_name:
-                    c_name = "crack"
-                else:
-                    c_name = raw_name
+                raw_name = model.names.get(cls_id, "")
+                c_name = normalize_hazard_class(raw_name)
 
                 detections.append(
                     {

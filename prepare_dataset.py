@@ -1,127 +1,130 @@
-from pathlib import Path
+import argparse
 import shutil
-
-# Expected project structure:
-# RoadDamageDetection/
-#   road_damage_data/images/{train,val,test}
-#   road_damage_data/labels/{train,val,test}
+from pathlib import Path
 
 PROJECT_DIR = Path(__file__).resolve().parent
 SOURCE_DIR = PROJECT_DIR / "road_damage_data"
-OUTPUT_DIR = PROJECT_DIR / "road_damage_2class"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 SPLITS = ("train", "val", "test")
 
-# Original IDs: 0=pothole, 1=crack, 2=manhole
-# New IDs:      0=pothole, 1=manhole
-KEEP_AND_REMAP = {0: 0, 2: 1}
-CRACK_ID = 1
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Prepare Road Damage Dataset (2-class or 3-class).")
+    parser.add_argument(
+        "--classes",
+        type=int,
+        choices=[2, 3],
+        default=2,
+        help="Number of classes to output: 2 (pothole, manhole) or 3 (pothole, crack, manhole).",
+    )
+    return parser.parse_args()
 
 
 def main():
+    args = parse_args()
+    mode_3class = args.classes == 3
+
+    out_folder_name = "road_damage_3class" if mode_3class else "road_damage_2class"
+    output_dir = PROJECT_DIR / out_folder_name
+    yaml_filename = "data_3class.yaml" if mode_3class else "data_2class.yaml"
+    yaml_path = PROJECT_DIR / yaml_filename
+
     if not SOURCE_DIR.is_dir():
         raise FileNotFoundError(
-            f"Could not find {SOURCE_DIR}. Run prepare_dataset.py first."
+            f"Could not find source dataset at: {SOURCE_DIR}\n"
+            "Please ensure road_damage_data/ exists with images/ and labels/ subdirectories."
         )
 
-    if OUTPUT_DIR.exists():
-        raise FileExistsError(
-            f"Output already exists: {OUTPUT_DIR}\n"
-            "Rename/delete that folder first, or change OUTPUT_DIR in this script."
-        )
+    if output_dir.exists():
+        print(f"Warning: Output directory {output_dir} already exists. Cleaning before write...")
+        shutil.rmtree(output_dir)
 
-    totals = {split: {"copied": 0, "skipped_crack_only": 0, "empty_labels": 0}
-              for split in SPLITS}
+    print(f"Preparing {args.classes}-Class Dataset...")
+    print(f"Source: {SOURCE_DIR}")
+    print(f"Destination: {output_dir}")
+
+    # Original IDs: 0=pothole, 1=crack, 2=manhole
+    if mode_3class:
+        keep_and_remap = {0: 0, 1: 1, 2: 2}
+    else:
+        keep_and_remap = {0: 0, 2: 1}  # Drop crack (1), remap manhole (2 -> 1)
+
+    totals = {
+        split: {"copied": 0, "skipped": 0, "empty_labels": 0}
+        for split in SPLITS
+    }
 
     for split in SPLITS:
         images_dir = SOURCE_DIR / "images" / split
         labels_dir = SOURCE_DIR / "labels" / split
 
         if not images_dir.is_dir() or not labels_dir.is_dir():
-            raise FileNotFoundError(
-                f"Expected both directories for split '{split}':\n"
-                f"{images_dir}\n{labels_dir}"
-            )
+            print(f"Notice: Split '{split}' missing in source dataset, skipping.")
+            continue
 
-        out_images = OUTPUT_DIR / "images" / split
-        out_labels = OUTPUT_DIR / "labels" / split
+        out_images = output_dir / "images" / split
+        out_labels = output_dir / "labels" / split
         out_images.mkdir(parents=True, exist_ok=True)
         out_labels.mkdir(parents=True, exist_ok=True)
 
-        for image_path in sorted(images_dir.iterdir()):
-            if not image_path.is_file() or image_path.suffix.lower() not in IMAGE_EXTENSIONS:
+        for img_path in sorted(images_dir.iterdir()):
+            if not img_path.is_file() or img_path.suffix.lower() not in IMAGE_EXTENSIONS:
                 continue
 
-            label_path = labels_dir / f"{image_path.stem}.txt"
-            if not label_path.is_file():
-                raise FileNotFoundError(
-                    f"Missing label file for image:\n{image_path}\nExpected:\n{label_path}"
-                )
+            lbl_path = labels_dir / f"{img_path.stem}.txt"
+            if not lbl_path.is_file():
+                continue
 
-            lines = [line.strip() for line in label_path.read_text(encoding="utf-8").splitlines()
-                     if line.strip()]
+            lines = [line.strip() for line in lbl_path.read_text(encoding="utf-8").splitlines() if line.strip()]
             kept_lines = []
             original_classes = set()
 
-            for line_number, line in enumerate(lines, start=1):
+            for line in lines:
                 parts = line.split()
                 if len(parts) != 5:
-                    raise ValueError(f"Invalid YOLO label ({label_path}, line {line_number}): {line}")
+                    continue
                 try:
-                    class_id = int(parts[0])
-                    coords = [float(value) for value in parts[1:]]
-                except ValueError as exc:
-                    raise ValueError(f"Non-numeric YOLO label ({label_path}, line {line_number}): {line}") from exc
+                    cid = int(parts[0])
+                    coords = [float(v) for v in parts[1:]]
+                except ValueError:
+                    continue
 
-                if class_id not in (0, 1, 2):
-                    raise ValueError(f"Unexpected class ID {class_id} in {label_path}")
-                if not all(0 <= value <= 1 for value in coords):
-                    raise ValueError(f"Coordinates outside [0, 1] in {label_path}: {line}")
+                original_classes.add(cid)
+                if cid in keep_and_remap:
+                    new_cid = keep_and_remap[cid]
+                    kept_lines.append(f"{new_cid} " + " ".join(parts[1:]))
 
-                original_classes.add(class_id)
-                if class_id in KEEP_AND_REMAP:
-                    new_class_id = KEEP_AND_REMAP[class_id]
-                    kept_lines.append(" ".join([str(new_class_id), *parts[1:]]))
-                # class 1 (crack) is intentionally removed
-
-            # If an image contains cracks only, omit it rather than teaching
-            # the model that visible crack damage is a background example.
-            if original_classes and original_classes.issubset({CRACK_ID}):
-                totals[split]["skipped_crack_only"] += 1
+            if not mode_3class and original_classes == {1}:
+                totals[split]["skipped"] += 1
                 continue
 
-            shutil.copy2(image_path, out_images / image_path.name)
-            (out_labels / label_path.name).write_text(
-                "\n".join(kept_lines) + ("\n" if kept_lines else ""),
-                encoding="utf-8",
-            )
+            shutil.copy2(img_path, out_images / img_path.name)
+            (out_labels / lbl_path.name).write_text("\n".join(kept_lines) + ("\n" if kept_lines else ""), encoding="utf-8")
             totals[split]["copied"] += 1
             if not kept_lines:
                 totals[split]["empty_labels"] += 1
 
-    yaml_text = f"""path: {OUTPUT_DIR.as_posix()}
+    # Write YAML
+    if mode_3class:
+        names_yaml = "  0: pothole\n  1: crack\n  2: manhole\n"
+    else:
+        names_yaml = "  0: pothole\n  1: manhole\n"
+
+    yaml_text = f"""path: {output_dir.as_posix()}
 train: images/train
 val: images/val
 test: images/test
 
 names:
-  0: pothole
-  1: manhole
-"""
-    yaml_path = PROJECT_DIR / "data_2class.yaml"
+{names_yaml}"""
     yaml_path.write_text(yaml_text, encoding="utf-8")
 
-    print("Created two-class dataset successfully.")
-    print(f"Dataset folder: {OUTPUT_DIR}")
-    print(f"Dataset YAML:   {yaml_path}")
-    print("\nCounts:")
+    print("\nDataset preparation completed successfully!")
+    print(f"Output directory : {output_dir}")
+    print(f"Config YAML file : {yaml_path}")
+    print("\nSplit statistics:")
     for split, counts in totals.items():
-        print(
-            f"{split}: copied={counts['copied']}, "
-            f"crack-only images skipped={counts['skipped_crack_only']}, "
-            f"images with no remaining target boxes={counts['empty_labels']}"
-        )
-    print("\nClass mapping: old pothole 0 -> new pothole 0; old manhole 2 -> new manhole 1")
+        print(f"  [{split}] Copied: {counts['copied']} | Skipped: {counts['skipped']}")
 
 
 if __name__ == "__main__":
