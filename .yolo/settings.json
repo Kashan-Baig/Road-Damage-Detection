@@ -1,0 +1,20 @@
+{
+  "settings_version": "0.0.6",
+  "datasets_dir": "C:\\Users\\amtul\\Desktop\\Road-Damage-Detection\\datasets",
+  "weights_dir": "weights",
+  "runs_dir": "runs",
+  "uuid": "c73fc84362fba8a54931d949ca43a7f80f4805fb4a8976b4f5fdfcbed651d3f6",
+  "sync": true,
+  "api_key": "",
+  "openai_api_key": "",
+  "clearml": true,
+  "comet": true,
+  "dvc": true,
+  "hub": true,
+  "mlflow": true,
+  "neptune": true,
+  "raytune": true,
+  "tensorboard": true,
+  "wandb": false,
+  "vscode_msg": true
+}

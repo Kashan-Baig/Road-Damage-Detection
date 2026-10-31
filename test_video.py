@@ -1,66 +1,92 @@
-
+import argparse
 from pathlib import Path
+import torch
 from ultralytics import YOLO
 
 # --------------------------------------------------
 # 1. PROJECT DIRECTORY
 # --------------------------------------------------
-PROJECT_DIR = Path(r"C:\MyWork\RoadDamageDetection")
+PROJECT_DIR = Path(__file__).resolve().parent
 
-# --------------------------------------------------
-# 2. MODEL PATH
-# Change this for each model you want to test
-# --------------------------------------------------
-MODEL_PATH = (
-    PROJECT_DIR
-    / "runs"
-    / "road_damage_baseline"
-    / "weights"
-    / "best_640.pt"
-)
 
-# --------------------------------------------------
-# 3. VIDEO PATH
-# Place your video in the project folder
-# --------------------------------------------------
-VIDEO_PATH = PROJECT_DIR / "3657637695-preview.mp4"
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run YOLO video inference on road damage videos.")
+    parser.add_argument(
+        "--weights",
+        type=str,
+        default=str(PROJECT_DIR / "runs" / "road_damage_baseline" / "weights" / "best_640.pt"),
+        help="Path to trained model weights (.pt file).",
+    )
+    parser.add_argument(
+        "--source",
+        type=str,
+        default=str(PROJECT_DIR / "tests"),
+        help="Path to a video file or folder containing videos (default: tests/).",
+    )
+    parser.add_argument(
+        "--conf",
+        type=float,
+        default=0.25,
+        help="Confidence threshold (default: 0.25).",
+    )
+    parser.add_argument(
+        "--imgsz",
+        type=int,
+        default=640,
+        help="Inference frame size (default: 640).",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="0" if torch.cuda.is_available() else "cpu",
+        help="Device to run on (e.g. '0' for CUDA GPU, 'cpu').",
+    )
+    parser.add_argument(
+        "--name",
+        type=str,
+        default="video_test_results",
+        help="Output folder name inside runs/.",
+    )
+    return parser.parse_args()
 
-# --------------------------------------------------
-# 4. SETTINGS
-# --------------------------------------------------
-CONFIDENCE = 0.25
-IMAGE_SIZE = 640
 
-# --------------------------------------------------
-# 5. CHECK FILES
-# --------------------------------------------------
-if not MODEL_PATH.is_file():
-    raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
+def main():
+    args = parse_args()
+    model_path = Path(args.weights)
+    source_path = Path(args.source)
 
-if not VIDEO_PATH.is_file():
-    raise FileNotFoundError(f"Video not found: {VIDEO_PATH}")
+    if not model_path.is_file():
+        raise FileNotFoundError(
+            f"Model weights not found at: {model_path}\n"
+            f"Please specify the path to your trained .pt file with --weights <path>"
+        )
 
-# --------------------------------------------------
-# 6. LOAD MODEL
-# --------------------------------------------------
-model = YOLO(str(MODEL_PATH))
+    if not source_path.exists():
+        raise FileNotFoundError(f"Video source not found at: {source_path}")
 
-# --------------------------------------------------
-# 7. RUN VIDEO PREDICTION
-# --------------------------------------------------
-model.predict(
-    source=str(VIDEO_PATH),
-    imgsz=IMAGE_SIZE,
-    conf=CONFIDENCE,
-    iou=0.45,
-    device="cpu",
-    save=True,
-    project=str(PROJECT_DIR / "runs"),
-    name="video_test_conf_025",
-    exist_ok=True,
-    vid_stride=1
-)
+    print(f"Loading model: {model_path}")
+    print(f"Source: {source_path}")
+    print(f"Device: {args.device} | Confidence: {args.conf} | Frame Size: {args.imgsz}")
 
-print("Video prediction complete.")
-print("Check the output folder:")
-print(PROJECT_DIR / "runs" / "video_test_conf_025")
+    model = YOLO(str(model_path))
+
+    model.predict(
+        source=str(source_path),
+        imgsz=args.imgsz,
+        conf=args.conf,
+        iou=0.45,
+        device=args.device,
+        save=True,
+        project=str(PROJECT_DIR / "runs"),
+        name=args.name,
+        exist_ok=True,
+        vid_stride=1,
+    )
+
+    out_dir = PROJECT_DIR / "runs" / args.name
+    print("\nVideo prediction complete!")
+    print(f"Saved annotated videos to: {out_dir}")
+
+
+if __name__ == "__main__":
+    main()
