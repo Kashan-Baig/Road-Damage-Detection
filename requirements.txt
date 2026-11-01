@@ -6,7 +6,7 @@ torch>=2.0.0
 torchvision>=0.15.0
 
 # Computer Vision, Video & Spatial Tracking
-opencv-python>=4.8.0
+opencv-python-headless
 pillow>=10.0.0
 imageio-ffmpeg>=0.5.0
 scipy>=1.10.0
