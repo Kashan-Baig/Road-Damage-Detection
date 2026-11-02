@@ -24,7 +24,7 @@ wandb/
 mlruns/
 
 # Model weights (large files)
-*.pt
+
 *.pth
 *.onnx
 *.engine
