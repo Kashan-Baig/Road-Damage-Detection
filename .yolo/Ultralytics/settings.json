@@ -1,0 +1,19 @@
+{
+  "settings_version": "0.0.8",
+  "datasets_dir": "C:\\MyWork\\datasets",
+  "weights_dir": "C:\\MyWork\\RoadDamageDetection\\weights",
+  "runs_dir": "C:\\MyWork\\RoadDamageDetection\\runs",
+  "uuid": "32be4b000d30033818ca8a4b92beb16ff15f3916bddedbfaa0d96c97c0044a97",
+  "sync": true,
+  "api_key": "",
+  "openai_api_key": "",
+  "clearml": true,
+  "comet": true,
+  "dvc": true,
+  "mlflow": true,
+  "raytune": true,
+  "tensorboard": false,
+  "wandb": false,
+  "vscode_msg": true,
+  "openvino_msg": true
+}

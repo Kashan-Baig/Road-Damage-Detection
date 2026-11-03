@@ -1,0 +1,7 @@
+[theme]
+base = "dark"
+primaryColor = "#F5B301"
+font = "sans serif"
+
+[server]
+maxUploadSize = 2048
