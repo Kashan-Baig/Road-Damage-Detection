@@ -54,8 +54,3 @@ desktop.ini
 .env
 .env.*
 !.env.example
-
-# Downloaded test videos
-*.mp4
-*.mov
-*.avi
