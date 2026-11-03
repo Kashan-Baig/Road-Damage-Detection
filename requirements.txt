@@ -1,24 +1,24 @@
-# Core YOLO framework
-ultralytics>=8.3.0
 
-# Deep learning backbone
+# YOLO with headless OpenCV support
+ultralytics-opencv-headless>=8.3.0
+
+# Deep learning
 torch>=2.0.0
 torchvision>=0.15.0
 
-# Computer Vision, Video & Spatial Tracking
-opencv-python-headless
+# Computer Vision and Video
 pillow>=10.0.0
 imageio-ffmpeg>=0.5.0
 scipy>=1.10.0
 
-# Data Processing, GIS Mapping & Visualization
+# Data Processing and Visualization
 numpy>=1.23.0
 pandas>=2.0.0
 matplotlib>=3.7.0
 PyYAML>=6.0
 pydeck>=0.8.0
 
-# Interactive Web Application UI
+# Web Application
 streamlit>=1.30.0
 starlette>=0.40.0
 python-multipart>=0.0.10
